@@ -1,44 +1,51 @@
 # Hybrid RAG Travel Agent
 
 ## Overview
-This project implements a **Hybrid Retrieval-Augmented Generation (RAG) Travel Agent** designed to answer travel-related user queries in a controlled and reliable way.
+This project implements a **Hybrid Retrieval-Augmented Generation (RAG) Travel Agent** that answers travel booking queries using a strict separation of responsibilities between deterministic code and an LLM.
 
-The system follows a hybrid RAG architecture where **retrieval is used only for unstructured package knowledge**, while **all business decisions such as flight selection, pricing, and filtering are handled deterministically in code**.
+The system is intentionally designed so that:
+- **All decisions, pricing, filtering, and calculations are handled deterministically in Python**
+- **Retrieval (RAG) is used only for unstructured package information**
+- **The LLM is used strictly for explanation and presentation**
 
-The user query is embedded and used to retrieve relevant package chunks from a FAISS vector store. These retrieved chunks are injected into the LLM prompt as contextual grounding. The LLM is strictly limited to explanation and presentation, ensuring that **no factual or pricing hallucinations occur**.
+This architecture prevents hallucinations, enforces business rules, and mirrors how real-world, production-grade AI systems are built.
 
-Instead of relying entirely on a Large Language Model (LLM), the system follows a hybrid design where:
-- **Deterministic code handles decisions**
-- **RAG supplies contextual knowledge**
-- **The LLM is used only for explanation**
+---
 
-This approach mirrors real-world, production-grade AI system design.
+## Key Design Principle: Hybrid RAG
+Unlike traditional RAG systems where the LLM is allowed to reason, calculate, and decide, this system follows a **hybrid approach**:
+
+- Deterministic code controls:
+  - Flight selection
+  - Time-based filtering (morning / afternoon / evening / night)
+  - Cheapest flight logic
+  - Package tier selection
+  - Price extraction
+  - Cost calculations
+- RAG is used only to retrieve **relevant package descriptions and inclusions**
+- The LLM:
+  - Never performs calculations
+  - Never modifies prices
+  - Never applies constraints
+  - Only explains results using provided context
+
+This ensures **accuracy, reliability, and explainability**.
 
 
-## Core Concept: Hybrid RAG
-Traditional RAG systems often allow the LLM to both reason and decide.  
-In contrast, this system **strictly separates responsibilities**:
-
-- Business logic (filters, pricing, selection) is enforced in code
-- The LLM never performs calculations or applies constraints
-- Retrieved knowledge is injected into the prompt as read-only context
-
-This ensures factual correctness while retaining natural language flexibility.
-
-
-## System Flow
+## High-Level System Flow
 
 ```mermaid
 flowchart TD
-    A[User Query] --> B[Deterministic Flight Logic]
-    B --> C[Time & Cheapest Filters]
-    C --> D[Selected Flight]
+    A[User Query] --> B[Query Parsing]
+    B --> C[Deterministic Flight Selection]
+    C --> D[Flight Data]
 
     A --> E[RAG Retrieval]
     E --> F[FAISS Vector Store]
     F --> G[Relevant Package Context]
 
-    D --> H[Prompt Construction]
+    D --> H[Cost Calculation Engine]
     G --> H
 
-    H --> I[LLM Explanation]
+    H --> I[Prompt Construction]
+    I --> J[LLM Explanation Output]
